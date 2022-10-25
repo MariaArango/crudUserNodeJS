@@ -2,16 +2,18 @@
   "name": "tare1_cruduser",
   "version": "0.0.1",
   "description": "Rest API crud User",
-  "main": "repository.js",
+  "main": "./src/app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node repository.js",
-    "dev": "nodemon repository.js"
+    "start": "node ./src/app.js",
+    "dev": "nodemon ./src/app.js",
+    "lint": "eslint ./src --fix"
   },
   "author": "Maria Rodriguez Arango",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "jsonwebtoken": "^8.5.1",
     "moment": "^2.29.4",
@@ -19,6 +21,9 @@
   },
   "devDependencies": {
     "eslint": "^8.26.0",
-    "nodemon": "^2.0.20"
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "nodemon": "^2.0.20",
+    "prettier": "2.7.1"
   }
 }
