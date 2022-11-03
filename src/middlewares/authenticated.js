@@ -8,7 +8,7 @@ function ensureAuth(req, res, next) {
   if (!whiteList.includes(req.originalUrl)) {
     if (!req.headers.authorization) {
       return res
-        .estatus(401)
+        .status(401)
         .json({ msg: 'la petición no tiene cabecera de Autenticación' });
     }
 

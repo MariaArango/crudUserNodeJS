@@ -3,123 +3,127 @@ const UserSchema = require('../models/userSchema');
 const UserModel = require('../models/User');
 const jwt = require('../services/jwt');
 
-async function createUser(req, res) {
+function createUser(req, res) {
+  const { name, lastname, email, password } = req.body;
+  if (!name || name == null || name === undefined) {
+    return res.status(400).json({ msg: 'el nombre es obligatorio' });
+  }
+  if (!lastname || lastname == null || lastname === undefined) {
+    return res.status(400).json({ msg: 'el apellido es obligatorio' });
+  }
+  if (!email || email == null || email === undefined) {
+    return res.status(400).json({ msg: 'el email es obligatorio' });
+  }
+  if (!password || password == null || password === undefined) {
+    return res.status(400).json({ msg: 'la contraseña es obligatoria' });
+  }
   const userData = new UserSchema(req.body);
-  const {
-    name, lastname, email, password,
-  } = req.body;
 
-  try {
-    if (!name || name == null || name === undefined) {
-      return res.status(400).json({ msg: 'el nombre es obligatorio' });
-    }
-    if (!lastname || lastname == null || lastname === undefined) {
-      return res.status(400).json({ msg: 'el apellido es obligatorio' });
-    }
-    if (!email || email == null || email === undefined) {
-      return res.status(400).json({ msg: 'el email es obligatorio' });
-    }
-    if (!password || password == null || password === undefined) {
-      return res.status(400).json({ msg: 'la contraseña es obligatoria' });
-    }
+  UserSchema.findOne({ email })
+    .then((user) => {
+      if (user) {
+        return res.status(400).json({ msg: 'el email ya existe' });
+      }
 
-    // revisamos que se cumple la clave unica del email
-    const foundEmail = await UserSchema.findOne({ email });
-    if (foundEmail) return res.status(400).json({ msg: 'el email ya existe' });
+      bcryptjs
+        .hash(password, bcryptjs.genSaltSync(10))
+        .then((pwd) => {
+          userData.password = pwd;
+          userData.save();
 
-    const salt = bcryptjs.genSaltSync(10);
-    userData.password = await bcryptjs.hash(password, salt);
-    userData.save();
-    const user = new UserModel(userData);
-
-    return res.status(200).json(user);
-  } catch (error) {
-    return res.status(500).json({ msg: error });
-  }
+          return res.status(200).json(new UserModel(userData));
+        })
+        .catch((error) => {
+          return res.status(500).json({ msg: error });
+        });
+    })
+    .catch((error) => {
+      return res.status(500).json({ msg: error });
+    });
 }
 
-async function getUsers(req, res) {
-  const userData = await UserSchema.find();
-  const users = userData.map((user) => new UserModel(user));
-  try {
-    res.status(200).json(users);
-  } catch (error) {
-    if (!users) {
-      res.status(404).json({ msg: 'No hay usuarios' });
-    } else {
-      res.status(500).json({ msg: error });
-    }
-  }
+function getUsers(req, res) {
+  UserSchema.find()
+    .then((userData) => {
+      return res.status(200).json(userData.map((user) => new UserModel(user)));
+    })
+    .catch((error) => {
+      return res.status(500).json({ msg: error });
+    });
 }
 
-async function getUserById(req, res) {
+function getUserById(req, res) {
   const idUser = req.params.id;
-
-  try {
-    const userData = await UserSchema.findById(idUser);
-    const user = new UserModel(userData);
-
-    res.status(200).json(user);
-  } catch (error) {
-    if (error.message.includes('Cast to ObjectId failed for value')) {
-      res.status(404).json({ msg: 'No existe el  usuario' });
-    } else {
-      res.status(500).json({ msg: error });
-    }
-  }
+  UserSchema.findById(idUser)
+    .then((user) => {
+      return res.status(200).json(new UserModel(user));
+    })
+    .catch((error) => {
+      if (error.message.includes('Cast to ObjectId failed for value')) {
+        return res.status(404).json({ msg: 'No existe el  usuario' });
+      } else {
+        return res.status(500).json({ msg: error });
+      }
+    });
 }
 
-async function updateUser(req, res) {
+function updateUser(req, res) {
   const idUser = req.params.id;
   const params = req.body;
 
-  try {
-    const userData = await UserSchema.findByIdAndUpdate(idUser, params);
-    const user = new UserModel(userData);
-
-    res.status(200).json(user);
-  } catch (error) {
-    if (error.message.includes('Cast to ObjectId failed for value')) {
-      res.status(404).json({ msg: 'No existe el  usuario' });
-    } else {
-      res.status(500).json({ msg: error });
-    }
-  }
+  UserSchema.findByIdAndUpdate(idUser, params)
+    .then((user) => {
+      return res.status(200).json(new UserModel(user));
+    })
+    .catch((error) => {
+      if (error.message.includes('Cast to ObjectId failed for value')) {
+        return res.status(404).json({ msg: 'No existe el usuario' });
+      } else {
+        return res.status(500).json({ msg: error });
+      }
+    });
 }
 
-async function deleteUser(req, res) {
+function deleteUser(req, res) {
   const idUser = req.params.id;
 
-  try {
-    const user = await UserSchema.findByIdAndDelete(idUser);
-
-    if (!user) {
-      res.status(404).json({ msg: 'No existe el usuario' });
-    } else {
-      res.status(204).json({});
-    }
-  } catch (error) {
-    res.status(500).json({ msg: error });
-  }
+  UserSchema.findByIdAndDelete(idUser)
+    .then(() => {
+      return res.status(204).json({});
+    })
+    .catch(() => {
+      return res.status(204).json({});
+    });
 }
 
-async function login(req, res) {
+function login(req, res) {
   const { email, password } = req.body;
 
-  try {
-    const user = await UserSchema.findOne({ email });
+  if (!email || email == null || email === undefined) {
+    return res.status(400).json({ msg: 'el email es obligatorio' });
+  }
+  if (!password || password == null || password === undefined) {
+    return res.status(400).json({ msg: 'la contraseña es obligatoria' });
+  }
 
+  UserSchema.findOne({ email }).then((user) => {
     if (!user) {
       return res.status(400).json({ msg: 'error en el email o contraseña' });
     }
-    const passwordSuccess = await bcryptjs.compare(password, user.password);
-    if (!passwordSuccess) {
-      return res.status(400).json({ msg: 'error en el email o contraseña' });
-    }
-    return res.status(200).json({ token: jwt.createToken(user, '12h') });
-  } catch (error) {
-    return res.status(500).json({ error });
-  }
+    bcryptjs
+      .compare(password, user.password)
+      .then((passwordSuccess) => {
+        if (!passwordSuccess) {
+          return res
+            .status(400)
+            .json({ msg: 'error en el email o contraseña' });
+        }
+        return res.status(200).json({ token: jwt.createToken(user, '12h') });
+      })
+      .catch((error) => {
+        return res.status(500).json({ error });
+      });
+  });
 }
 
 module.exports = {
